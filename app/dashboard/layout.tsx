@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Brand */}
         <div className="px-5 py-4 border-b border-ink-100">
           <span className="font-display text-lg text-ink-900">
-            Duka <span className="text-brand-500">Manager</span>
+            Blackwhite
           </span>
         </div>
 

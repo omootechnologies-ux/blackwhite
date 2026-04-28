@@ -1,21 +1,21 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { parseMongikeWebhookStatus } from '@/lib/mongike'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    console.log('Azam Pay webhook:', JSON.stringify(body))
+    console.log('Mongike webhook:', JSON.stringify(body))
 
-    if (body.transactionStatus === 'success' || body.status === 'success') {
+    const { isPaid, orderId } = parseMongikeWebhookStatus(body)
+
+    if (isPaid && orderId) {
       const admin = createAdminClient()
-      const invoiceNumber = body.externalId || body.reference
 
-      if (invoiceNumber) {
-        await admin
-          .from('invoices')
-          .update({ status: 'paid', paid_at: new Date().toISOString() })
-          .eq('number', invoiceNumber)
-      }
+      await admin
+        .from('invoices')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('number', orderId)
     }
 
     return NextResponse.json({ ok: true })

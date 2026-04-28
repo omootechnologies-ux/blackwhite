@@ -1,4 +1,4 @@
-# Duka Manager — blackwhite.co.tz
+# Blackwhite — blackwhite.co.tz
 
 Invoice na Payslip SaaS kwa biashara za Tanzania.
 
@@ -6,7 +6,7 @@ Invoice na Payslip SaaS kwa biashara za Tanzania.
 - **Frontend + API**: Next.js 14 (App Router)
 - **Database + Auth**: Supabase (Postgres + Auth + Storage)
 - **PDF**: Puppeteer + @sparticuz/chromium
-- **Payments**: Azam Pay (M-Pesa, Airtel, Tigo)
+- **Payments**: Mongike Mobile Money (M-Pesa, Airtel, Tigo)
 - **Styling**: Tailwind CSS
 - **Hosting**: Vercel
 
@@ -19,8 +19,8 @@ npm install
 
 ### 2. Environment Variables
 ```bash
-cp .env.local.example .env.local
-# Fill in your Supabase and Azam Pay credentials
+cp .env.example .env.local
+# Fill in your Supabase and Mongike credentials
 ```
 
 ### 3. Database Setup
@@ -50,16 +50,16 @@ For production on Vercel, `@sparticuz/chromium` is used automatically.
 
 **Alternative**: Deploy to a DigitalOcean Droplet ($6/mo) and use full Puppeteer — simpler setup.
 
-## Azam Pay Setup
-1. Register at https://azampay.co.tz
-2. Get sandbox credentials from dashboard
-3. Test with sandbox, then switch to production
+## Mongike Setup
+1. Create a Mongike account
+2. Generate your API key and add `MONGIKE_API_KEY`
+3. Keep `MONGIKE_BASE_URL=https://mongike.com/api/v1`
 
 ## Siku 5 za Kujenga (5-Day Build Plan)
 - **Siku 1**: Auth + DB + Vercel deploy
 - **Siku 2**: Invoice builder + PDF
 - **Siku 3**: Payslip + PAYE calculator
-- **Siku 4**: Azam Pay + WhatsApp share
+- **Siku 4**: Mongike Mobile Money + WhatsApp share
 - **Siku 5**: Settings + polish + first 3 customers
 
 ## Revenue Target

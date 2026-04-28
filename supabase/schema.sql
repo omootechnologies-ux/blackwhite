@@ -1,5 +1,5 @@
 -- ============================================================
--- Duka Manager — Supabase Schema
+-- Blackwhite — Supabase Schema
 -- Run this in Supabase SQL editor
 -- ============================================================
 
