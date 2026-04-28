@@ -1,3 +1,6 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 import { createServerClient, createAdminClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { htmlToPDF, renderInvoiceHTML } from '@/lib/pdf'

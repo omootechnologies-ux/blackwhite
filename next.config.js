@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: { allowedOrigins: ['blackwhite.co.tz', 'localhost:3000'] }
+    serverComponentsExternalPackages: ['puppeteer-core'],
   },
-  images: {
-    remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co' }]
-  }
 }
 
 module.exports = nextConfig
