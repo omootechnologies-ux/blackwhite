@@ -1,7 +1,8 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-import { createServerClient, createAdminClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { htmlToPDF, renderInvoiceHTML } from '@/lib/pdf'
 
