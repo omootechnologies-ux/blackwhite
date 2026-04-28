@@ -12,6 +12,7 @@ export default function RegisterPage() {
     email: '', password: '', businessName: '', phone: '',
   })
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   function update(field: string, val: string) {
@@ -22,12 +23,19 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
+
+    const callbackBaseUrl = (process.env.NEXT_PUBLIC_BASE_URL || window.location.origin).replace(/\/$/, '')
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        emailRedirectTo: `${callbackBaseUrl}/api/auth/callback`,
+        data: {
+          business_name: form.businessName,
+          phone: form.phone,
+        },
       },
     })
 
@@ -37,31 +45,14 @@ export default function RegisterPage() {
       return
     }
 
-    if (data.user) {
-      // Create business record
-      const { error: bizError } = await supabase.from('businesses').insert({
-        user_id: data.user.id,
-        name: form.businessName,
-        phone: form.phone,
-        currency: 'TZS',
-      })
-
-      if (bizError) {
-        setError('Kuna tatizo kuunda akaunti. Jaribu tena.')
-        setLoading(false)
-        return
-      }
-
-      // Create trial subscription
-      await supabase.from('subscriptions').insert({
-        user_id: data.user.id,
-        plan: 'business',
-        status: 'trial',
-      })
-
+    if (data.session) {
       router.push('/dashboard')
       router.refresh()
+      return
     }
+
+    setSuccess('Tumekutumia barua pepe ya uthibitisho. Bofya kiungo kisha uingie.')
+    setLoading(false)
   }
 
   return (
@@ -72,6 +63,12 @@ export default function RegisterPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-lg mb-6">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm px-4 py-3 rounded-lg mb-6">
+          {success}
         </div>
       )}
 
@@ -93,7 +90,7 @@ export default function RegisterPage() {
             type="tel"
             value={form.phone}
             onChange={(e) => update('phone', e.target.value)}
-            placeholder="+255 7XX XXX XXX"
+            placeholder="2557XXXXXXXX"
             className="input bg-ink-950 border-ink-700 text-white placeholder:text-ink-600 focus:border-brand-500"
           />
         </div>

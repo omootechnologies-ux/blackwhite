@@ -273,7 +273,7 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
       <strong>${business.name}</strong> — ${business.phone || ''} — ${business.email || ''}
     </div>
     <div class="footer-powered">
-      Imezalishwa na Duka Manager · blackwhite.co.tz
+      Imezalishwa na Blackwhite · blackwhite.co.tz
     </div>
   </div>
 
@@ -449,7 +449,7 @@ export function renderPayslipHTML(payslip: Payslip, business: Business): string 
   </div>
 
   <div class="footer">
-    Hati hii imezalishwa kiotomatiki na Duka Manager · blackwhite.co.tz · ${new Date().toLocaleDateString('sw-TZ')}
+    Hati hii imezalishwa kiotomatiki na Blackwhite · blackwhite.co.tz · ${new Date().toLocaleDateString('sw-TZ')}
   </div>
 
 </body>
