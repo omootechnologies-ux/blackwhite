@@ -6,7 +6,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 max-w-5xl mx-auto">
         <div className="font-display text-xl text-white">
-          Duka <span className="text-brand-400">Manager</span>
+          Blackwhite
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm text-ink-300 hover:text-white transition-colors">
@@ -138,7 +138,7 @@ export default function HomePage() {
       {/* Footer */}
       <div className="border-t border-ink-800 py-8 text-center">
         <p className="text-xs text-ink-600">
-          © {new Date().getFullYear()} Duka Manager · blackwhite.co.tz · Dar es Salaam, Tanzania
+          © {new Date().getFullYear()} Blackwhite · blackwhite.co.tz · Dar es Salaam, Tanzania
         </p>
       </div>
     </div>
