@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getSafeRedirectPath } from '@/lib/auth/redirect'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { getAuthCallbackUrl } from '@/lib/site-url'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -14,6 +16,15 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loginHref, setLoginHref] = useState('/login')
+
+  useEffect(() => {
+    const nextPath = getSafeRedirectPath(new URLSearchParams(window.location.search).get('next'))
+
+    if (nextPath !== '/dashboard') {
+      setLoginHref(`/login?next=${encodeURIComponent(nextPath)}`)
+    }
+  }, [])
 
   function update(field: string, val: string) {
     setForm((f) => ({ ...f, [field]: val }))
@@ -24,12 +35,13 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
     setSuccess(null)
+    const nextPath = getSafeRedirectPath(new URLSearchParams(window.location.search).get('next'))
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        emailRedirectTo: getAuthCallbackUrl(window.location.origin, nextPath),
         data: {
           business_name: form.businessName,
           phone: form.phone,
@@ -44,7 +56,7 @@ export default function RegisterPage() {
     }
 
     if (data.session) {
-      router.push('/dashboard')
+      router.replace(nextPath)
       router.refresh()
       return
     }
@@ -128,7 +140,7 @@ export default function RegisterPage() {
 
       <p className="text-center text-sm text-ink-500 mt-4">
         Una akaunti?{' '}
-        <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium">
+        <Link href={loginHref} className="text-brand-400 hover:text-brand-300 font-medium">
           Ingia
         </Link>
       </p>
