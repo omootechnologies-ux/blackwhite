@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Save URL to invoice
     await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoice.id)
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${invoice.number}.pdf"`,
