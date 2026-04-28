@@ -15,7 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq('user_id', user.id)
     .single()
 
-  if (!business) redirect('/onboarding')
+  if (!business) redirect('/dashboard/settings')
 
   return (
     <div className="min-h-screen bg-ink-50 flex">

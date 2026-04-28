@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .single()
 
-  if (!business) redirect('/onboarding')
+  if (!business) redirect('/dashboard/settings')
 
   // Stats
   const [
