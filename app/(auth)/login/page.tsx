@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getSafeRedirectPath } from '@/lib/auth/redirect'
 import { createBrowserClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -12,6 +13,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [registerHref, setRegisterHref] = useState('/register')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const nextPath = getSafeRedirectPath(params.get('next'))
+
+    if (nextPath !== '/dashboard') {
+      setRegisterHref(`/register?next=${encodeURIComponent(nextPath)}`)
+    }
+
+    if (params.get('error') === 'confirmation_failed') {
+      setError('Kiungo cha uthibitisho hakikufanya kazi. Tafadhali ingia tena.')
+    }
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -28,7 +43,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    const nextPath = getSafeRedirectPath(new URLSearchParams(window.location.search).get('next'))
+    router.replace(nextPath)
     router.refresh()
   }
 
@@ -78,7 +94,7 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-ink-500 mt-6">
         Bado huna akaunti?{' '}
-        <Link href="/register" className="text-brand-400 hover:text-brand-300 font-medium">
+        <Link href={registerHref} className="text-brand-400 hover:text-brand-300 font-medium">
           Jisajili bure
         </Link>
       </p>

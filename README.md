@@ -30,6 +30,20 @@ Create storage buckets in Supabase dashboard:
 - `documents` (private, 50MB) — for PDFs
 - `logos` (public, 5MB) — for business logos
 
+In Supabase Auth URL configuration, set:
+- Site URL: `https://YOUR_DOMAIN`
+- Redirect URLs:
+  - `https://YOUR_DOMAIN/api/auth/callback`
+  - `https://YOUR_DOMAIN/dashboard`
+  - `http://localhost:3000/api/auth/callback`
+  - `http://localhost:3000/dashboard`
+
+For Vercel production, add these environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_BASE_URL=https://YOUR_DOMAIN`
+
 ### 4. Run locally
 ```bash
 npm run dev

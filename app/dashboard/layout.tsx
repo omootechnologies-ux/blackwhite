@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { SidebarNav } from '@/components/ui/SidebarNav'
+import { ensureUserWorkspace } from '@/lib/auth/provision'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient()
@@ -9,13 +10,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
+  const { business } = await ensureUserWorkspace(supabase, user)
 
-  if (!business) redirect('/dashboard/settings')
+  if (!business) redirect('/login')
 
   return (
     <div className="min-h-screen bg-ink-50 flex">

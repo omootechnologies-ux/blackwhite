@@ -2,17 +2,14 @@ import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatTZS, formatDate } from '@/lib/utils'
+import { ensureUserWorkspace } from '@/lib/auth/provision'
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('id, name')
-    .eq('user_id', user.id)
-    .single()
+  const { business } = await ensureUserWorkspace(supabase, user)
 
   if (!business) redirect('/dashboard/settings')
 

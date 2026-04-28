@@ -2,16 +2,14 @@ import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SettingsForm } from '@/components/SettingsForm'
 import { SubscriptionCard } from '@/components/SubscriptionCard'
+import { ensureUserWorkspace } from '@/lib/auth/provision'
 
 export default async function SettingsPage() {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: business }, { data: subscription }] = await Promise.all([
-    supabase.from('businesses').select('*').eq('user_id', user.id).single(),
-    supabase.from('subscriptions').select('*').eq('user_id', user.id).single(),
-  ])
+  const { business, subscription } = await ensureUserWorkspace(supabase, user)
 
   if (!business) redirect('/dashboard')
 
