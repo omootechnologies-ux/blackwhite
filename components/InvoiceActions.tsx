@@ -34,7 +34,17 @@ export function InvoiceActions({ invoice }: Props) {
     setLoading('send')
     setError(null)
     try {
-      const res = await fetch(`/api/invoices/${invoice.id}/send`, { method: 'POST' })
+      const res = await fetch(`/api/invoices/${invoice.id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: invoice.number,
+          amount: invoice.total,
+          customerPhone: invoice.client_phone,
+          customerName: invoice.client_name,
+          customerEmail: invoice.client_email,
+        }),
+      })
       if (!res.ok) throw new Error('Kutuma kumeshindwa')
       const data = await res.json()
       setWhatsappUrl(data.whatsappUrl)

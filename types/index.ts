@@ -1,5 +1,5 @@
 // ============================================================
-// Duka Manager — Core Types
+// Blackwhite — Core Types
 // ============================================================
 
 export interface Business {
@@ -100,17 +100,37 @@ export interface Client {
   tin?: string
 }
 
-// Azam Pay
-export interface AzamTokenResponse {
-  data: { accessToken: string }
-  message: string
-  success: boolean
+export type MongikeFeePayer = 'MERCHANT' | 'CUSTOMER'
+
+export interface MongikePaymentRequest {
+  orderId: string
+  amount: number
+  buyerPhone: string
+  buyerName?: string
+  buyerEmail?: string
+  feePayer?: MongikeFeePayer
+  metadata?: Record<string, unknown>
 }
 
-export interface AzamCheckoutResponse {
-  paymentLink?: string
+export interface MongikePaymentData {
+  id: string
+  order_id: string
+  gateway_ref: string
+  amount: number
+  status: string
+  expires_at: string
+}
+
+export interface MongikePaymentResponse {
+  status: string
   message: string
-  success: boolean
+  data: MongikePaymentData
+}
+
+export interface MongikeErrorResponse {
+  status?: string
+  message: string
+  errors?: Record<string, string[]>
 }
 
 // Form types

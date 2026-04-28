@@ -65,7 +65,7 @@ export function SubscriptionCard({ subscription }: Props) {
           </div>
         </div>
         <a
-          href="https://wa.me/255700000000?text=Nataka%20kulipia%20Duka%20Manager"
+          href="https://wa.me/255700000000?text=Nataka%20kulipia%20Blackwhite"
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary w-full justify-center mt-3 text-sm"
