@@ -117,7 +117,7 @@ export default async function DashboardPage() {
             </thead>
             <tbody>
               {recentInvoices.map((inv) => (
-                <tr key={inv.id} onClick={() => {}} className="cursor-pointer">
+                <tr key={inv.id} className="cursor-pointer">
                   <td>
                     <Link href={`/dashboard/invoices/${inv.id}`} className="font-mono text-xs font-medium text-ink-700 hover:text-brand-600">
                       {inv.number}
