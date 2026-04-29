@@ -1,0 +1,1 @@
+export const USAGE_REQUEST_PRICE_TZS = 2000

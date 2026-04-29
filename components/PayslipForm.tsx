@@ -4,12 +4,14 @@ import { useRouter } from 'next/navigation'
 import { Business } from '@/types'
 import { calculatePayroll } from '@/lib/tax'
 import { formatTZS, currentMonth, uid } from '@/lib/utils'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 
 interface Props { business: Business }
 
 interface Extra { id: string; name: string; amount: number }
 
 export function PayslipForm({ business }: Props) {
+  const { t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,8 +44,8 @@ export function PayslipForm({ business }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!employeeName.trim()) { setError('Jina la mfanyakazi linahitajika'); return }
-    if (basicSalary <= 0) { setError('Mshahara lazima uwe zaidi ya 0'); return }
+    if (!employeeName.trim()) { setError(t('payslips.nameRequired')); return }
+    if (basicSalary <= 0) { setError(t('payslips.salaryRequired')); return }
 
     setLoading(true)
     setError(null)
@@ -64,7 +66,7 @@ export function PayslipForm({ business }: Props) {
 
     if (!res.ok) {
       const err = await res.json()
-      setError(err.error || 'Tatizo limetokea')
+      setError(err.error || t('common.error'))
       setLoading(false)
       return
     }
@@ -80,9 +82,9 @@ export function PayslipForm({ business }: Props) {
   if (success) {
     return (
       <div className="card text-center py-16">
-        <div className="text-4xl mb-4">✅</div>
-        <h2 className="font-display text-xl text-ink-800 mb-2">Payslip Imeundwa!</h2>
-        <p className="text-sm text-ink-500">PDF inafunguka… inarudisha kwenye orodha</p>
+        <div className="text-4xl mb-4">PDF</div>
+        <h2 className="font-display text-xl text-ink-800 mb-2">{t('payslips.created')}</h2>
+        <p className="text-sm text-ink-500">{t('payslips.openingPdf')}</p>
       </div>
     )
   }
@@ -95,25 +97,25 @@ export function PayslipForm({ business }: Props) {
 
       {/* Employee Info */}
       <div className="card">
-        <h2 className="font-semibold text-ink-700 mb-5">Maelezo ya Mfanyakazi</h2>
+        <h2 className="font-semibold text-ink-700 mb-5">{t('payslips.employeeDetails')}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="input-label">Jina Kamili *</label>
-            <input className="input" type="text" required placeholder="Jina la mfanyakazi"
+            <label className="input-label">{t('payslips.employeeName')} *</label>
+            <input className="input" type="text" required placeholder={t('payslips.employeeNamePlaceholder')}
               value={employeeName} onChange={e => setEmployeeName(e.target.value)} />
           </div>
           <div>
-            <label className="input-label">Namba ya Mfanyakazi</label>
-            <input className="input" type="text" placeholder="EMP-001"
+            <label className="input-label">{t('payslips.employeeId')}</label>
+            <input className="input" type="text" placeholder={t('payslips.employeeIdPlaceholder')}
               value={employeeId} onChange={e => setEmployeeId(e.target.value)} />
           </div>
           <div>
-            <label className="input-label">Cheo / Nafasi</label>
-            <input className="input" type="text" placeholder="Meneja, Keshia, n.k."
+            <label className="input-label">{t('payslips.position')}</label>
+            <input className="input" type="text" placeholder={t('payslips.positionPlaceholder')}
               value={position} onChange={e => setPosition(e.target.value)} />
           </div>
           <div>
-            <label className="input-label">Mwezi *</label>
+            <label className="input-label">{t('payslips.month')} *</label>
             <input className="input" type="month" required
               value={month} onChange={e => setMonth(e.target.value)} />
           </div>
@@ -122,11 +124,11 @@ export function PayslipForm({ business }: Props) {
 
       {/* Salary */}
       <div className="card">
-        <h2 className="font-semibold text-ink-700 mb-5">Mshahara</h2>
+        <h2 className="font-semibold text-ink-700 mb-5">{t('payslips.salary')}</h2>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <div className="mb-4">
-              <label className="input-label">Mshahara wa Msingi (TZS) *</label>
+              <label className="input-label">{t('payslips.basicSalary')} (TZS) *</label>
               <input className="input font-mono text-lg" type="number" min="0" required
                 placeholder="0" value={basicSalary || ''}
                 onChange={e => setBasicSalary(Number(e.target.value))} />
@@ -135,13 +137,13 @@ export function PayslipForm({ business }: Props) {
             {/* Allowances */}
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-ink-400 uppercase tracking-wide">Posho (Allowances)</span>
+                <span className="text-xs font-semibold text-ink-400 uppercase tracking-wide">{t('payslips.allowances')}</span>
                 <button type="button" onClick={addAllowance}
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium">+ Ongeza</button>
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium">+ {t('payslips.add')}</button>
               </div>
               {allowances.map(a => (
                 <div key={a.id} className="flex gap-2 mb-2">
-                  <input className="input flex-1" type="text" placeholder="Jina la posho"
+                  <input className="input flex-1" type="text" placeholder={t('payslips.allowanceNamePlaceholder')}
                     value={a.name} onChange={e => updateExtra(allowances, setAllowances, a.id, 'name', e.target.value)} />
                   <input className="input w-32 font-mono" type="number" min="0" placeholder="0"
                     value={a.amount || ''} onChange={e => updateExtra(allowances, setAllowances, a.id, 'amount', Number(e.target.value))} />
@@ -154,13 +156,13 @@ export function PayslipForm({ business }: Props) {
             {/* Extra deductions */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-ink-400 uppercase tracking-wide">Makato Mengine</span>
+                <span className="text-xs font-semibold text-ink-400 uppercase tracking-wide">{t('payslips.deductions')}</span>
                 <button type="button" onClick={addDeduction}
-                  className="text-xs text-brand-600 hover:text-brand-700 font-medium">+ Ongeza</button>
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium">+ {t('payslips.add')}</button>
               </div>
               {deductions.map(d => (
                 <div key={d.id} className="flex gap-2 mb-2">
-                  <input className="input flex-1" type="text" placeholder="Jina la makato"
+                  <input className="input flex-1" type="text" placeholder={t('payslips.deductionNamePlaceholder')}
                     value={d.name} onChange={e => updateExtra(deductions, setDeductions, d.id, 'name', e.target.value)} />
                   <input className="input w-32 font-mono" type="number" min="0" placeholder="0"
                     value={d.amount || ''} onChange={e => updateExtra(deductions, setDeductions, d.id, 'amount', Number(e.target.value))} />
@@ -173,35 +175,35 @@ export function PayslipForm({ business }: Props) {
 
           {/* Live preview */}
           <div className="bg-ink-50 rounded-xl p-5 space-y-2 text-sm">
-            <p className="text-xs font-bold text-ink-400 uppercase tracking-wide mb-3">Muhtasari wa Malipo</p>
-            <div className="flex justify-between"><span className="text-ink-500">Mshahara Msingi</span><span className="font-mono">{formatTZS(payroll.basic_salary)}</span></div>
+            <p className="text-xs font-bold text-ink-400 uppercase tracking-wide mb-3">{t('payslips.summary')}</p>
+            <div className="flex justify-between"><span className="text-ink-500">{t('payslips.basicSalary')}</span><span className="font-mono">{formatTZS(payroll.basic_salary)}</span></div>
             {payroll.allowances_total > 0 && (
-              <div className="flex justify-between"><span className="text-ink-500">Posho</span><span className="font-mono">+ {formatTZS(payroll.allowances_total)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-500">{t('payslips.allowances')}</span><span className="font-mono">+ {formatTZS(payroll.allowances_total)}</span></div>
             )}
             <div className="flex justify-between font-semibold border-t border-ink-200 pt-2 mt-2">
-              <span>Gross</span><span className="font-mono">{formatTZS(payroll.gross)}</span>
+              <span>{t('payslips.gross')}</span><span className="font-mono">{formatTZS(payroll.gross)}</span>
             </div>
             <div className="h-px bg-ink-200 my-2" />
             <div className="flex justify-between text-red-600"><span>PAYE</span><span className="font-mono">- {formatTZS(payroll.paye)}</span></div>
-            <div className="flex justify-between text-red-600"><span>NSSF (Mfanyakazi 5%)</span><span className="font-mono">- {formatTZS(payroll.nssf_employee)}</span></div>
+            <div className="flex justify-between text-red-600"><span>{t('payslips.nssfEmployee')}</span><span className="font-mono">- {formatTZS(payroll.nssf_employee)}</span></div>
             {payroll.other_deductions_total > 0 && (
-              <div className="flex justify-between text-red-600"><span>Makato mengine</span><span className="font-mono">- {formatTZS(payroll.other_deductions_total)}</span></div>
+              <div className="flex justify-between text-red-600"><span>{t('payslips.deductions')}</span><span className="font-mono">- {formatTZS(payroll.other_deductions_total)}</span></div>
             )}
             <div className="bg-brand-500 text-white rounded-lg p-3 mt-3 flex justify-between items-center">
-              <span className="font-semibold text-sm">Cha Mkono (Net)</span>
+              <span className="font-semibold text-sm">{t('payslips.netPay')}</span>
               <span className="font-mono font-bold text-lg">{formatTZS(payroll.net_pay)}</span>
             </div>
             <p className="text-xs text-ink-400 mt-2">
-              NSSF Mwajiri (5%): {formatTZS(payroll.nssf_employer)} — hautoi kwenye mshahara
+              {t('payslips.nssfEmployerNote', { amount: formatTZS(payroll.nssf_employer) })}
             </p>
           </div>
         </div>
       </div>
 
       <div className="flex items-center justify-end gap-3 pb-8">
-        <button type="button" onClick={() => router.back()} className="btn-secondary">Rudi</button>
+        <button type="button" onClick={() => router.back()} className="btn-secondary">{t('common.back')}</button>
         <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Inaunda PDF...' : 'Unda Payslip + PDF →'}
+          {loading ? t('payslips.creatingPdf') : t('payslips.createPdf')}
         </button>
       </div>
     </form>

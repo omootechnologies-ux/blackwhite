@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { SidebarNav } from '@/components/ui/SidebarNav'
 import { ensureUserWorkspace } from '@/lib/auth/provision'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
+import { getServerT } from '@/lib/i18n/server'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient()
@@ -10,6 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
+  const { t } = getServerT()
   const { business } = await ensureUserWorkspace(supabase, user)
 
   if (!business) redirect('/login')
@@ -37,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-ink-800 truncate">{business.name}</p>
-              <p className="text-xs text-ink-400">Tanzania</p>
+              <p className="text-xs text-ink-400">{t('common.tanzania')}</p>
             </div>
           </div>
         </div>
@@ -48,11 +51,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Bottom */}
         <div className="px-3 py-4 border-t border-ink-100 mt-auto space-y-1">
           <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2 text-sm text-ink-500 hover:text-ink-800 hover:bg-ink-50 rounded-lg transition-colors">
-            <span>⚙️</span> Mipangilio
+            <span>⚙️</span> {t('common.settings')}
           </Link>
+          <div className="px-3 py-2">
+            <LanguageSwitcher compact />
+          </div>
           <form action="/api/auth/signout" method="POST">
             <button type="submit" className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-ink-500 hover:text-ink-800 hover:bg-ink-50 rounded-lg transition-colors text-left">
-              <span>🚪</span> Toka
+              <span>🚪</span> {t('common.signOut')}
             </button>
           </form>
         </div>

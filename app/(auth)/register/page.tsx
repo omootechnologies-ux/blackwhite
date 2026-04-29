@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { getSafeRedirectPath } from '@/lib/auth/redirect'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { getAuthCallbackUrl } from '@/lib/site-url'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 
 export default function RegisterPage() {
+  const { t } = useI18n()
   const router = useRouter()
   const supabase = createBrowserClient()
   const [form, setForm] = useState({
@@ -61,14 +63,14 @@ export default function RegisterPage() {
       return
     }
 
-    setSuccess('Tumekutumia barua pepe ya uthibitisho. Bofya kiungo kisha uingie.')
+    setSuccess(t('auth.register.success'))
     setLoading(false)
   }
 
   return (
     <div className="bg-ink-900 border border-ink-800 rounded-2xl p-8 animate-fade-up">
-      <h1 className="font-display text-2xl text-white mb-1">Anza leo — Bure</h1>
-      <p className="text-sm text-ink-400 mb-8">Siku 14 za majaribio. Hakuna kadi ya benki.</p>
+      <h1 className="font-display text-2xl text-white mb-1">{t('auth.register.title')}</h1>
+      <p className="text-sm text-ink-400 mb-8">{t('auth.register.subtitle')}</p>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-lg mb-6">
@@ -84,7 +86,7 @@ export default function RegisterPage() {
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
-          <label className="input-label text-ink-400">Jina la Biashara</label>
+          <label className="input-label text-ink-400">{t('auth.register.businessName')}</label>
           <input
             type="text"
             value={form.businessName}
@@ -95,7 +97,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="input-label text-ink-400">Namba ya Simu</label>
+          <label className="input-label text-ink-400">{t('auth.register.phone')}</label>
           <input
             type="tel"
             value={form.phone}
@@ -105,7 +107,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="input-label text-ink-400">Barua Pepe</label>
+          <label className="input-label text-ink-400">{t('auth.register.email')}</label>
           <input
             type="email"
             value={form.email}
@@ -116,7 +118,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="input-label text-ink-400">Nywila</label>
+          <label className="input-label text-ink-400">{t('auth.register.password')}</label>
           <input
             type="password"
             value={form.password}
@@ -129,19 +131,18 @@ export default function RegisterPage() {
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full justify-center mt-2">
-          {loading ? 'Inaunda akaunti...' : 'Anza Bure →'}
+          {loading ? t('auth.register.loading') : t('auth.register.button')}
         </button>
       </form>
 
       <p className="text-center text-xs text-ink-600 mt-5">
-        Kwa kuendelea, unakubali{' '}
-        <Link href="/terms" className="text-ink-500 hover:text-ink-400">masharti ya matumizi</Link>
+        {t('auth.register.terms')}
       </p>
 
       <p className="text-center text-sm text-ink-500 mt-4">
-        Una akaunti?{' '}
+        {t('auth.register.hasAccount')}{' '}
         <Link href={loginHref} className="text-brand-400 hover:text-brand-300 font-medium">
-          Ingia
+          {t('auth.register.loginLink')}
         </Link>
       </p>
     </div>

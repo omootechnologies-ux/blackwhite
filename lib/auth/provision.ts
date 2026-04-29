@@ -1,9 +1,8 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
-import type { Business, Subscription } from '@/types'
+import type { Business } from '@/types'
 
 type Workspace = {
   business: Business | null
-  subscription: Subscription | null
 }
 
 export async function ensureUserWorkspace(
@@ -53,42 +52,5 @@ export async function ensureUserWorkspace(
     }
   }
 
-  const { data: existingSubscription, error: subscriptionReadError } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  if (subscriptionReadError) throw subscriptionReadError
-
-  let subscription = existingSubscription as Subscription | null
-
-  if (!subscription) {
-    const { data: createdSubscription, error: subscriptionCreateError } = await supabase
-      .from('subscriptions')
-      .insert({
-        user_id: user.id,
-        plan: 'business',
-        status: 'trial',
-      })
-      .select('*')
-      .single()
-
-    if (subscriptionCreateError) {
-      if (subscriptionCreateError.code !== '23505') throw subscriptionCreateError
-
-      const { data: racedSubscription, error: racedSubscriptionError } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (racedSubscriptionError) throw racedSubscriptionError
-      subscription = racedSubscription as Subscription | null
-    } else {
-      subscription = createdSubscription as Subscription
-    }
-  }
-
-  return { business, subscription }
+  return { business }
 }

@@ -1,6 +1,6 @@
 # Blackwhite — blackwhite.co.tz
 
-Invoice na Payslip SaaS kwa biashara za Tanzania.
+Invoice and payslip app for Tanzanian businesses with pay-as-you-go document requests.
 
 ## Stack
 - **Frontend + API**: Next.js 14 (App Router)
@@ -20,15 +20,17 @@ npm install
 ### 2. Environment Variables
 ```bash
 cp .env.example .env.local
-# Fill in your Supabase and Mongike credentials
+# Fill in your Supabase, Mongike, and email credentials
 ```
 
 ### 3. Database Setup
 Run `supabase/schema.sql` in your Supabase SQL editor.
 
 Create storage buckets in Supabase dashboard:
-- `documents` (private, 50MB) — for PDFs
-- `logos` (public, 5MB) — for business logos
+- `documents` (public, 50MB) — generated invoice and payslip PDFs that can be shared by link
+- `business-logos` (public, 5MB) — uploaded business logos
+
+If you already have the old `logos` bucket, keep it temporarily while migrating existing logo files. New uploads use `business-logos`.
 
 In Supabase Auth URL configuration, set:
 - Site URL: `https://YOUR_DOMAIN`
@@ -43,6 +45,11 @@ For Vercel production, add these environment variables:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_BASE_URL=https://YOUR_DOMAIN`
+- `MONGIKE_API_KEY`
+- `MONGIKE_BASE_URL=https://mongike.com/api/v1`
+- `EMAIL_WEBHOOK_URL`
+- `EMAIL_WEBHOOK_AUTH_HEADER` (optional)
+- `EMAIL_FROM` (optional)
 
 ### 4. Run locally
 ```bash
@@ -69,12 +76,10 @@ For production on Vercel, `@sparticuz/chromium` is used automatically.
 2. Generate your API key and add `MONGIKE_API_KEY`
 3. Keep `MONGIKE_BASE_URL=https://mongike.com/api/v1`
 
-## Siku 5 za Kujenga (5-Day Build Plan)
-- **Siku 1**: Auth + DB + Vercel deploy
-- **Siku 2**: Invoice builder + PDF
-- **Siku 3**: Payslip + PAYE calculator
-- **Siku 4**: Mongike Mobile Money + WhatsApp share
-- **Siku 5**: Settings + polish + first 3 customers
+Paid usage requests cost **TZS 2,000** each. The app records payment attempts in `usage_payments` when the table exists.
 
-## Revenue Target
-40 customers × TZS 25,000/month = **TZS 1,000,000/month**
+## Email Sharing
+Email delivery is delegated to `EMAIL_WEBHOOK_URL`. The app posts document metadata, a public PDF URL, and an attachment descriptor for the generated PDF. Set `EMAIL_WEBHOOK_AUTH_HEADER` if your webhook requires an authorization header.
+
+## Pay-As-You-Go Model
+There are no monthly plans in the app. Users pay TZS 2,000 when generating, sending, or sharing invoice and payslip PDFs.

@@ -7,15 +7,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     console.log('Mongike webhook:', JSON.stringify(body))
 
-    const { isPaid, orderId } = parseMongikeWebhookStatus(body)
+    const { isPaid, orderId, gatewayRef } = parseMongikeWebhookStatus(body)
 
-    if (isPaid && orderId) {
+    if (orderId) {
       const admin = createAdminClient()
+      const status = isPaid
+        ? 'paid'
+        : String(body?.status || body?.payment_status || 'updated').toLowerCase()
 
-      await admin
-        .from('invoices')
-        .update({ status: 'paid', paid_at: new Date().toISOString() })
-        .eq('number', orderId)
+      const update: Record<string, string> = { status }
+      if (gatewayRef) update.gateway_ref = gatewayRef
+
+      const { error } = await admin
+        .from('usage_payments')
+        .update(update)
+        .eq('order_id', orderId)
+
+      if (error) {
+        console.warn('Usage payment webhook update skipped:', error.message)
+      }
     }
 
     return NextResponse.json({ ok: true })

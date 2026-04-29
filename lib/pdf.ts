@@ -1,5 +1,6 @@
 import { Business, Invoice, Payslip } from '@/types'
 import { formatTZS, formatDate, monthLabel } from './utils'
+import { existsSync } from 'fs'
 
 // ============================================================
 // PDF generation via Puppeteer
@@ -19,17 +20,40 @@ async function getBrowser() {
     })
   }
 
-  // Local dev — use full puppeteer
+  // Local dev: use a local Chrome/Chromium executable with puppeteer-core.
   const puppeteer = await import('puppeteer-core')
+  const executablePath = findLocalChrome()
+
   return puppeteer.launch({
     headless: true,
-    executablePath:
-      process.platform === 'win32'
-        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-        : process.platform === 'darwin'
-        ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-        : '/usr/bin/google-chrome',
+    executablePath,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   })
+}
+
+function findLocalChrome() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.platform === 'win32'
+      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+      : null,
+    process.platform === 'darwin'
+      ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : null,
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+  ].filter(Boolean) as string[]
+
+  const executablePath = candidates.find((path) => existsSync(path))
+
+  if (!executablePath) {
+    throw new Error(
+      'Chrome executable not found. Install Google Chrome locally or set PUPPETEER_EXECUTABLE_PATH.'
+    )
+  }
+
+  return executablePath
 }
 
 export async function htmlToPDF(html: string): Promise<Buffer> {
@@ -48,25 +72,60 @@ export async function htmlToPDF(html: string): Promise<Buffer> {
   }
 }
 
+async function renderLogoHTML(business: Business, className: string) {
+  const fallback = `<div class="logo-placeholder">${escapeHtml((business.name || 'B').charAt(0))}</div>`
+
+  if (!business.logo_url) return fallback
+
+  const src = await logoUrlToDataUri(business.logo_url)
+  if (!src) return fallback
+
+  return `<img src="${src}" alt="${escapeHtml(business.name)}" class="${className}" />`
+}
+
+async function logoUrlToDataUri(url: string) {
+  try {
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) return url
+
+    const contentType = response.headers.get('content-type') || 'image/png'
+    if (!contentType.startsWith('image/')) return url
+
+    const arrayBuffer = await response.arrayBuffer()
+    if (arrayBuffer.byteLength > 2_500_000) return url
+
+    return `data:${contentType};base64,${Buffer.from(arrayBuffer).toString('base64')}`
+  } catch {
+    return url
+  }
+}
+
+function escapeHtml(value: string | number | null | undefined) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // ============================================================
 // Invoice HTML Template
 // ============================================================
-export function renderInvoiceHTML(invoice: Invoice, business: Business): string {
+export async function renderInvoiceHTML(invoice: Invoice, business: Business): Promise<string> {
   const itemsHTML = invoice.items
     .map(
       (item) => `
       <tr>
-        <td class="desc">${item.description}</td>
-        <td class="num">${item.qty}</td>
+        <td class="desc">${escapeHtml(item.description)}</td>
+        <td class="num">${escapeHtml(item.qty)}</td>
         <td class="num">${formatTZS(item.unit_price)}</td>
         <td class="num amount">${formatTZS(item.amount)}</td>
       </tr>`
     )
     .join('')
 
-  const logoHTML = business.logo_url
-    ? `<img src="${business.logo_url}" alt="${business.name}" class="logo" />`
-    : `<div class="logo-placeholder">${business.name.charAt(0)}</div>`
+  const logoHTML = await renderLogoHTML(business, 'logo')
 
   const statusBadge = {
     draft: '<span class="badge badge-gray">Rasimu</span>',
@@ -162,19 +221,19 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
     <div class="brand">
       ${logoHTML}
       <div>
-        <div class="biz-name">${business.name}</div>
+        <div class="biz-name">${escapeHtml(business.name)}</div>
         <div class="biz-meta">
-          ${business.address ? business.address + '<br>' : ''}
-          ${business.phone ? 'Simu: ' + business.phone + '<br>' : ''}
-          ${business.email ? business.email + '<br>' : ''}
-          ${business.tin ? 'TIN: ' + business.tin : ''}
-          ${business.vrn ? ' | VRN: ' + business.vrn : ''}
+          ${business.address ? escapeHtml(business.address) + '<br>' : ''}
+          ${business.phone ? 'Simu: ' + escapeHtml(business.phone) + '<br>' : ''}
+          ${business.email ? escapeHtml(business.email) + '<br>' : ''}
+          ${business.tin ? 'TIN: ' + escapeHtml(business.tin) : ''}
+          ${business.vrn ? ' | VRN: ' + escapeHtml(business.vrn) : ''}
         </div>
       </div>
     </div>
     <div class="invoice-meta">
       <div class="invoice-title">Invoice</div>
-      <div class="invoice-number"># ${invoice.number}</div>
+      <div class="invoice-number"># ${escapeHtml(invoice.number)}</div>
       <div style="margin-top:8px">${statusBadge}</div>
     </div>
   </div>
@@ -182,20 +241,20 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
   <div class="parties">
     <div>
       <div class="party-label">Kutoka</div>
-      <div class="party-name">${business.name}</div>
+      <div class="party-name">${escapeHtml(business.name)}</div>
       <div class="party-detail">
-        ${business.address || ''}<br>
-        ${business.tin ? 'TIN: ' + business.tin : ''}
+        ${escapeHtml(business.address || '')}<br>
+        ${business.tin ? 'TIN: ' + escapeHtml(business.tin) : ''}
       </div>
     </div>
     <div>
       <div class="party-label">Kwenda (Bill To)</div>
-      <div class="party-name">${invoice.client_name}</div>
+      <div class="party-name">${escapeHtml(invoice.client_name)}</div>
       <div class="party-detail">
-        ${invoice.client_phone ? 'Simu: ' + invoice.client_phone + '<br>' : ''}
-        ${invoice.client_email ? invoice.client_email + '<br>' : ''}
-        ${invoice.client_address ? invoice.client_address + '<br>' : ''}
-        ${invoice.client_tin ? 'TIN: ' + invoice.client_tin : ''}
+        ${invoice.client_phone ? 'Simu: ' + escapeHtml(invoice.client_phone) + '<br>' : ''}
+        ${invoice.client_email ? escapeHtml(invoice.client_email) + '<br>' : ''}
+        ${invoice.client_address ? escapeHtml(invoice.client_address) + '<br>' : ''}
+        ${invoice.client_tin ? 'TIN: ' + escapeHtml(invoice.client_tin) : ''}
       </div>
     </div>
   </div>
@@ -253,7 +312,7 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
       ? `<div class="payment-section">
     <div class="payment-title">Lipa Sasa — Pay Now</div>
     <div class="payment-link-label">Bonyeza au scan link hii kulipa:</div>
-    <div class="payment-link">${invoice.payment_link}</div>
+    <div class="payment-link">${escapeHtml(invoice.payment_link)}</div>
     <div class="mpesa-note">Tunakubali: M-Pesa, Airtel Money, Tigo Pesa, kadi ya benki</div>
   </div>`
       : ''
@@ -263,14 +322,14 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
     invoice.notes
       ? `<div class="notes-section">
     <div class="notes-label">Maelezo / Notes</div>
-    <div class="notes-text">${invoice.notes}</div>
+    <div class="notes-text">${escapeHtml(invoice.notes)}</div>
   </div>`
       : ''
   }
 
   <div class="footer">
     <div class="footer-brand">
-      <strong>${business.name}</strong> — ${business.phone || ''} — ${business.email || ''}
+      <strong>${escapeHtml(business.name)}</strong> — ${escapeHtml(business.phone || '')} — ${escapeHtml(business.email || '')}
     </div>
     <div class="footer-powered">
       Imezalishwa na Blackwhite · blackwhite.co.tz
@@ -285,15 +344,13 @@ export function renderInvoiceHTML(invoice: Invoice, business: Business): string 
 // ============================================================
 // Payslip HTML Template
 // ============================================================
-export function renderPayslipHTML(payslip: Payslip, business: Business): string {
-  const logoHTML = business.logo_url
-    ? `<img src="${business.logo_url}" alt="${business.name}" class="logo" />`
-    : `<div class="logo-placeholder">${business.name.charAt(0)}</div>`
+export async function renderPayslipHTML(payslip: Payslip, business: Business): Promise<string> {
+  const logoHTML = await renderLogoHTML(business, 'logo')
 
   const allowancesHTML = payslip.allowances
     .map(
       (a) =>
-        `<tr><td class="label">${a.name}</td><td class="num">${formatTZS(a.amount)}</td></tr>`
+        `<tr><td class="label">${escapeHtml(a.name)}</td><td class="num">${formatTZS(a.amount)}</td></tr>`
     )
     .join('')
 
@@ -304,7 +361,7 @@ export function renderPayslipHTML(payslip: Payslip, business: Business): string 
   ]
     .map(
       (d) =>
-        `<tr><td class="label">${d.name}</td><td class="num deduct">(${formatTZS(d.amount)})</td></tr>`
+        `<tr><td class="label">${escapeHtml(d.name)}</td><td class="num deduct">(${formatTZS(d.amount)})</td></tr>`
     )
     .join('')
 
@@ -362,10 +419,10 @@ export function renderPayslipHTML(payslip: Payslip, business: Business): string 
     <div class="brand">
       ${logoHTML}
       <div>
-        <div class="biz-name">${business.name}</div>
+        <div class="biz-name">${escapeHtml(business.name)}</div>
         <div class="biz-meta">
-          ${business.address || ''}<br>
-          ${business.tin ? 'TIN: ' + business.tin : ''}
+          ${escapeHtml(business.address || '')}<br>
+          ${business.tin ? 'TIN: ' + escapeHtml(business.tin) : ''}
         </div>
       </div>
     </div>
@@ -378,15 +435,15 @@ export function renderPayslipHTML(payslip: Payslip, business: Business): string 
   <div class="employee-box">
     <div>
       <div class="emp-label">Jina la Mfanyakazi</div>
-      <div class="emp-value">${payslip.employee_name}</div>
+      <div class="emp-value">${escapeHtml(payslip.employee_name)}</div>
     </div>
     <div>
       <div class="emp-label">Namba ya Mfanyakazi</div>
-      <div class="emp-value">${payslip.employee_id || '—'}</div>
+      <div class="emp-value">${escapeHtml(payslip.employee_id || '—')}</div>
     </div>
     <div>
       <div class="emp-label">Cheo / Position</div>
-      <div class="emp-value">${payslip.position || '—'}</div>
+      <div class="emp-value">${escapeHtml(payslip.position || '—')}</div>
     </div>
   </div>
 
