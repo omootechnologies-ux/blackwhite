@@ -79,17 +79,6 @@ export interface Payslip {
   created_at: string
 }
 
-export interface Subscription {
-  id: string
-  user_id: string
-  plan: 'starter' | 'business'
-  status: 'trial' | 'active' | 'expired'
-  trial_ends_at: string
-  current_period_start?: string
-  current_period_end?: string
-  created_at: string
-}
-
 export interface Client {
   id: string
   business_id: string
@@ -131,6 +120,32 @@ export interface MongikeErrorResponse {
   status?: string
   message: string
   errors?: Record<string, string[]>
+}
+
+export type UsagePaymentType =
+  | 'invoice_pdf'
+  | 'payslip_pdf'
+  | 'email_share'
+  | 'whatsapp_share'
+  | 'document_generation'
+
+export interface UsagePayment {
+  id: string
+  user_id: string
+  business_id: string
+  document_type: 'invoice' | 'payslip' | 'document'
+  document_id?: string
+  request_type: UsagePaymentType
+  provider: 'mongike'
+  gateway_ref?: string
+  provider_payment_id?: string
+  order_id: string
+  status?: string
+  amount: number
+  currency: 'TZS'
+  expires_at?: string
+  metadata?: Record<string, unknown>
+  created_at: string
 }
 
 // Form types

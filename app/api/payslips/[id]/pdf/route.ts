@@ -2,12 +2,12 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
-import { generateAndStoreInvoicePdf } from '@/lib/documents'
+import { generateAndStorePayslipPdf } from '@/lib/documents'
 import { initiateUsagePayment } from '@/lib/payments'
 import { getSiteUrl } from '@/lib/site-url'
+import { NextRequest, NextResponse } from 'next/server'
 
-async function getInvoiceContext(params: { id: string }) {
+async function getPayslipContext(params: { id: string }) {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { supabase, user: null }
@@ -16,38 +16,38 @@ async function getInvoiceContext(params: { id: string }) {
     .from('businesses').select('*').eq('user_id', user.id).single()
   if (!business) return { supabase, user, business: null }
 
-  const { data: invoice } = await supabase
-    .from('invoices').select('*').eq('id', params.id).eq('business_id', business.id).single()
+  const { data: payslip } = await supabase
+    .from('payslips').select('*').eq('id', params.id).eq('business_id', business.id).single()
 
-  return { supabase, user, business, invoice }
+  return { supabase, user, business, payslip }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { supabase, user, business, invoice } = await getInvoiceContext(params)
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const { supabase, user, business, payslip } = await getPayslipContext(params)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!business) return NextResponse.json({ error: 'No business' }, { status: 404 })
-  if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!payslip) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
-    const { pdfBuffer } = await generateAndStoreInvoicePdf(supabase, business, invoice)
+    const { pdfBuffer } = await generateAndStorePayslipPdf(supabase, business, payslip)
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${invoice.number}.pdf"`,
+        'Content-Disposition': `attachment; filename="payslip-${payslip.id}.pdf"`,
       },
     })
   } catch (err) {
-    console.error('PDF error:', err)
+    console.error('Payslip PDF error:', err)
     return NextResponse.json({ error: 'PDF generation failed' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { supabase, user, business, invoice } = await getInvoiceContext(params)
+  const { supabase, user, business, payslip } = await getPayslipContext(params)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!business) return NextResponse.json({ error: 'No business' }, { status: 404 })
-  if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!payslip) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json().catch(() => ({}))
 
@@ -56,24 +56,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       supabase,
       user,
       business,
-      documentType: 'invoice',
-      documentId: invoice.id,
-      requestType: body.requestType || 'invoice_pdf',
+      documentType: 'payslip',
+      documentId: payslip.id,
+      requestType: body.requestType || 'payslip_pdf',
       buyerPhone: body.payerPhone || business.phone,
       buyerName: business.name,
       buyerEmail: business.email || user.email,
       metadata: {
-        invoice_id: invoice.id,
-        invoice_number: invoice.number,
+        payslip_id: payslip.id,
+        employee_name: payslip.employee_name,
+        month: payslip.month,
       },
     })
 
-    const { pdfUrl } = await generateAndStoreInvoicePdf(supabase, business, invoice)
-    const downloadUrl = new URL(`/api/invoices/${invoice.id}/pdf`, getSiteUrl(req.nextUrl.origin)).toString()
+    const { pdfUrl } = await generateAndStorePayslipPdf(supabase, business, payslip)
+    const downloadUrl = new URL(`/api/payslips/${payslip.id}/pdf`, getSiteUrl(req.nextUrl.origin)).toString()
 
     return NextResponse.json({ pdfUrl, downloadUrl, payment })
   } catch (err: any) {
-    console.error('Paid invoice PDF error:', err)
+    console.error('Paid payslip PDF error:', err)
     return NextResponse.json(
       { error: err.message || 'PDF payment request failed' },
       { status: err.message?.includes('phone') ? 400 : 502 }

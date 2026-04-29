@@ -9,15 +9,19 @@ function toInternationalPhoneWithoutPlus(phone: string): string {
     throw new Error('buyerPhone is required in international format (e.g. 2557XXXXXXXX)')
   }
 
-  if (normalized.startsWith('+')) {
-    throw new Error('buyerPhone must be in international format without + (e.g. 2557XXXXXXXX)')
+  let digits = normalized.replace(/^\+/, '')
+
+  if (/^0[67]\d{8}$/.test(digits)) {
+    digits = `255${digits.slice(1)}`
+  } else if (/^[67]\d{8}$/.test(digits)) {
+    digits = `255${digits}`
   }
 
-  if (!/^\d{9,15}$/.test(normalized)) {
-    throw new Error('buyerPhone must contain only digits and be 9-15 characters long')
+  if (!/^\d{9,15}$/.test(digits)) {
+    throw new Error('buyerPhone must contain only digits and be 9-15 characters long, such as 2557XXXXXXXX')
   }
 
-  return normalized
+  return digits
 }
 
 export async function initiateMongikeMobileMoneyPayment({
@@ -77,11 +81,10 @@ export async function initiateMongikeMobileMoneyPayment({
 export function buildWhatsAppLink(invoice: Invoice, pdfUrl: string): string {
   const message = encodeURIComponent(
     `Habari ${invoice.client_name},\n\n` +
-      `Hii ni invoice ${invoice.number} kutoka kwa mimi.\n` +
+      `Hii ni invoice ${invoice.number} kutoka Blackwhite.\n` +
       `Kiasi: TZS ${invoice.total.toLocaleString()}\n` +
       `${invoice.due_date ? `Tarehe ya mwisho: ${invoice.due_date}\n` : ''}` +
-      `\nBonyeza hapa kuona na kulipa:\n${pdfUrl}\n` +
-      `${invoice.payment_link ? `\nLipa moja kwa moja:\n${invoice.payment_link}` : ''}`
+      `\nFungua PDF hapa:\n${pdfUrl}\n`
   )
 
   const phone = invoice.client_phone?.replace(/[^0-9]/g, '').replace(/^0/, '255')
@@ -95,7 +98,7 @@ export function parseMongikeWebhookStatus(body: Record<string, any>): {
   orderId?: string
   gatewayRef?: string
 } {
-  // TODO: Confirm official Mongike webhook schema + signature fields once docs are available.
+  // Mongike webhook payloads may vary by account setup; accept the known status/reference fields.
   const status = String(body?.status || body?.payment_status || '').toLowerCase()
   const orderId = body?.order_id || body?.orderId || body?.reference
   const gatewayRef = body?.gateway_ref || body?.gatewayRef

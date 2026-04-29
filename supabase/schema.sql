@@ -119,25 +119,39 @@ create policy "Business owns payslips" on payslips
   );
 
 -- ============================================================
--- SUBSCRIPTIONS
+-- USAGE PAYMENTS
 -- ============================================================
-create table subscriptions (
-  id              uuid primary key default gen_random_uuid(),
-  user_id         uuid references auth.users on delete cascade not null,
-  plan            text not null,              -- starter|business
-  status          text default 'trial',       -- trial|active|expired
-  trial_ends_at   timestamptz default now() + interval '14 days',
-  current_period_start timestamptz,
-  current_period_end   timestamptz,
-  azam_reference  text,
-  created_at      timestamptz default now(),
-  updated_at      timestamptz default now(),
-  unique(user_id)
+create table usage_payments (
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             uuid references auth.users on delete cascade not null,
+  business_id         uuid references businesses on delete cascade not null,
+  document_type       text not null check (document_type in ('invoice', 'payslip', 'document')),
+  document_id         uuid,
+  request_type        text not null check (
+    request_type in ('invoice_pdf', 'payslip_pdf', 'email_share', 'whatsapp_share', 'document_generation')
+  ),
+  provider            text not null default 'mongike',
+  gateway_ref         text,
+  provider_payment_id text,
+  order_id            text not null unique,
+  status              text,
+  amount              numeric(15,2) not null default 2000,
+  currency            text not null default 'TZS',
+  expires_at          timestamptz,
+  metadata            jsonb not null default '{}',
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
 );
 
-alter table subscriptions enable row level security;
-create policy "Users own their subscription" on subscriptions
-  for all using (auth.uid() = user_id);
+alter table usage_payments enable row level security;
+create policy "Users own their usage payments" on usage_payments
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and business_id in (
+      select id from businesses where user_id = auth.uid()
+    )
+  );
 
 -- ============================================================
 -- INVOICE NUMBER SEQUENCE HELPER
@@ -172,16 +186,17 @@ create trigger set_updated_at before update on businesses
   for each row execute function handle_updated_at();
 create trigger set_updated_at before update on invoices
   for each row execute function handle_updated_at();
-create trigger set_updated_at before update on subscriptions
+create trigger set_updated_at before update on usage_payments
   for each row execute function handle_updated_at();
 
 -- ============================================================
 -- STORAGE BUCKETS
 -- Run separately in Supabase dashboard → Storage
 -- ============================================================
--- Create bucket: "documents" (public: false, 50MB limit)
--- Create bucket: "logos" (public: true, 5MB limit)
+-- Create bucket: "documents" (public: true, 50MB limit)
+-- Create bucket: "business-logos" (public: true, 5MB limit)
 
 -- Then add policies:
--- documents: authenticated users can upload/read their own files
--- logos: authenticated users can upload, public can read
+-- documents: public read; authenticated users can upload/update their own generated PDFs
+-- business-logos: public read; authenticated users can upload/update their own logo path
+-- If you already have the old "logos" bucket, keep it temporarily only for migration.

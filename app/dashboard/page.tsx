@@ -3,12 +3,14 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatTZS, formatDate } from '@/lib/utils'
 import { ensureUserWorkspace } from '@/lib/auth/provision'
+import { getServerT } from '@/lib/i18n/server'
 
 export default async function DashboardPage() {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { t } = getServerT()
   const { business } = await ensureUserWorkspace(supabase, user)
 
   if (!business) redirect('/dashboard/settings')
@@ -36,9 +38,9 @@ export default async function DashboardPage() {
   const pendingTotal = (pendingInvoices ?? []).reduce((s, i) => s + i.total, 0)
 
   const stats = [
-    { label: 'Zilizolipwa (Jumla)', value: formatTZS(paidTotal), sub: `${paidInvoices ?? 0} invoice` },
-    { label: 'Zinasubiri Malipo', value: formatTZS(pendingTotal), sub: `${(pendingInvoices ?? []).length} invoice` },
-    { label: 'Invoice Zote', value: totalInvoices?.toString() ?? '0', sub: 'tangu mwanzo' },
+    { label: t('dashboard.paidTotal'), value: formatTZS(paidTotal), sub: `${paidInvoices ?? 0} ${t('common.invoices')}` },
+    { label: t('dashboard.pendingPayments'), value: formatTZS(pendingTotal), sub: `${(pendingInvoices ?? []).length} ${t('common.invoices')}` },
+    { label: t('dashboard.totalInvoices'), value: totalInvoices?.toString() ?? '0', sub: t('dashboard.sinceStart') },
   ]
 
   const statusColors: Record<string, string> = {
@@ -49,10 +51,10 @@ export default async function DashboardPage() {
   }
 
   const statusLabels: Record<string, string> = {
-    draft: 'Rasimu',
-    sent: 'Imetumwa',
-    paid: 'Imelipwa',
-    overdue: 'Imechelewa',
+    draft: t('common.status.draft'),
+    sent: t('common.status.sent'),
+    paid: t('common.status.paid'),
+    overdue: t('common.status.overdue'),
   }
 
   return (
@@ -60,15 +62,15 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="page-header mb-8">
         <div>
-          <h1 className="page-title">Habari, {business.name} 👋</h1>
-          <p className="text-sm text-ink-400 mt-1">Hali ya biashara yako leo</p>
+          <h1 className="page-title">{t('dashboard.greeting', { name: business.name })}</h1>
+          <p className="text-sm text-ink-400 mt-1">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/payslips/new" className="btn-secondary">
-            + Payslip
+            + {t('common.payslip')}
           </Link>
           <Link href="/dashboard/invoices/new" className="btn-primary">
-            + Invoice Mpya
+            + {t('dashboard.newInvoice')}
           </Link>
         </div>
       </div>
@@ -87,30 +89,30 @@ export default async function DashboardPage() {
       {/* Recent invoices */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-ink-800">Invoice za Hivi Karibuni</h2>
+          <h2 className="font-semibold text-ink-800">{t('dashboard.recentInvoices')}</h2>
           <Link href="/dashboard/invoices" className="text-sm text-brand-600 hover:text-brand-700 font-medium">
-            Ona zote →
+            {t('dashboard.viewAll')} →
           </Link>
         </div>
 
         {!recentInvoices?.length ? (
           <div className="empty-state py-12">
             <div className="empty-state-icon">📄</div>
-            <p className="font-medium text-ink-600 mb-1">Hakuna invoice bado</p>
-            <p className="text-sm text-ink-400 mb-4">Unda invoice yako ya kwanza leo</p>
+            <p className="font-medium text-ink-600 mb-1">{t('dashboard.noInvoices')}</p>
+            <p className="text-sm text-ink-400 mb-4">{t('dashboard.noInvoicesHint')}</p>
             <Link href="/dashboard/invoices/new" className="btn-primary">
-              + Invoice Mpya
+              + {t('dashboard.newInvoice')}
             </Link>
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Namba</th>
-                <th>Mteja</th>
-                <th>Jumla</th>
-                <th>Tarehe</th>
-                <th>Hali</th>
+                <th>{t('invoices.number')}</th>
+                <th>{t('common.client')}</th>
+                <th>{t('common.total')}</th>
+                <th>{t('common.date')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,13 +142,13 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-4">
         <Link href="/dashboard/payslips" className="card hover:border-brand-300 transition-colors cursor-pointer group">
           <div className="text-2xl mb-3">💰</div>
-          <h3 className="font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">Payslip za Wafanyakazi</h3>
-          <p className="text-sm text-ink-400 mt-1">Angalia na tengeneza payslip</p>
+          <h3 className="font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{t('dashboard.employeePayslips')}</h3>
+          <p className="text-sm text-ink-400 mt-1">{t('dashboard.employeePayslipsHint')}</p>
         </Link>
         <Link href="/dashboard/settings" className="card hover:border-brand-300 transition-colors cursor-pointer group">
           <div className="text-2xl mb-3">🏪</div>
-          <h3 className="font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">Maelezo ya Biashara</h3>
-          <p className="text-sm text-ink-400 mt-1">Logo, TIN, VRN, anwani</p>
+          <h3 className="font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{t('dashboard.businessDetails')}</h3>
+          <p className="text-sm text-ink-400 mt-1">{t('dashboard.businessDetailsHint')}</p>
         </Link>
       </div>
     </div>

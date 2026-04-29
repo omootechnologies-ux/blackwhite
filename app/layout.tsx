@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LanguageProvider } from '@/components/i18n/LanguageProvider'
+import { getServerLocale } from '@/lib/i18n/server'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://blackwhite.co.tz'),
@@ -18,10 +20,12 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = getServerLocale()
+
   return (
-    <html lang="sw">
+    <html lang={locale}>
       <body className="font-sans bg-ink-50 text-ink-900 antialiased">
-        {children}
+        <LanguageProvider initialLocale={locale}>{children}</LanguageProvider>
       </body>
     </html>
   )

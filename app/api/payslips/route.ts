@@ -2,10 +2,10 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { calculatePayroll } from '@/lib/tax'
-import { htmlToPDF, renderPayslipHTML } from '@/lib/pdf'
+import { generateAndStorePayslipPdf } from '@/lib/documents'
+import { initiateUsagePayment } from '@/lib/payments'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
@@ -18,6 +18,13 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { basic_salary, allowances = [], other_deductions = [], ...rest } = body
+
+  if (!business.phone && !body.payerPhone) {
+    return NextResponse.json(
+      { error: 'Add a business phone number in settings before creating a paid payslip request.' },
+      { status: 400 }
+    )
+  }
 
   const payroll = calculatePayroll(Number(basic_salary), allowances, other_deductions)
 
@@ -40,20 +47,31 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Generate PDF in background
   try {
-    const html = renderPayslipHTML(payslip, business)
-    const pdfBuffer = await htmlToPDF(html)
-    const admin = createAdminClient()
-    const filename = `payslips/${business.id}/${payslip.id}.pdf`
-    await admin.storage.from('documents').upload(filename, pdfBuffer, {
-      contentType: 'application/pdf', upsert: true,
+    const payment = await initiateUsagePayment({
+      supabase,
+      user,
+      business,
+      documentType: 'payslip',
+      documentId: payslip.id,
+      requestType: 'payslip_pdf',
+      buyerPhone: body.payerPhone || business.phone,
+      buyerName: business.name,
+      buyerEmail: business.email || user.email,
+      metadata: {
+        payslip_id: payslip.id,
+        employee_name: payslip.employee_name,
+        month: payslip.month,
+      },
     })
-    const { data: urlData } = admin.storage.from('documents').getPublicUrl(filename)
-    await supabase.from('payslips').update({ pdf_url: urlData.publicUrl }).eq('id', payslip.id)
-    return NextResponse.json({ ...payslip, pdf_url: urlData.publicUrl })
-  } catch (pdfErr) {
-    console.error('PDF gen error:', pdfErr)
-    return NextResponse.json(payslip)
+
+    const { pdfUrl } = await generateAndStorePayslipPdf(supabase, business, payslip)
+    return NextResponse.json({ ...payslip, pdf_url: pdfUrl, payment })
+  } catch (err: any) {
+    console.error('Payslip payment/PDF error:', err)
+    return NextResponse.json(
+      { error: err.message || 'Payslip payment or PDF generation failed', payslip_id: payslip.id },
+      { status: err.message?.includes('phone') ? 400 : 502 }
+    )
   }
 }

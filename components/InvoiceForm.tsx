@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Business } from '@/types'
 import { uid, formatTZS } from '@/lib/utils'
 import { VAT_RATE } from '@/lib/tax'
+import { useI18n } from '@/components/i18n/LanguageProvider'
 
 interface LineItem {
   id: string
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function InvoiceForm({ business }: Props) {
+  const { t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,8 +53,8 @@ export function InvoiceForm({ business }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!client.client_name.trim()) { setError('Jina la mteja linahitajika'); return }
-    if (items.some(i => !i.description.trim())) { setError('Maelezo ya bidhaa yote yanahitajika'); return }
+    if (!client.client_name.trim()) { setError(t('invoices.customerRequired')); return }
+    if (items.some(i => !i.description.trim())) { setError(t('invoices.itemsRequired')); return }
 
     setLoading(true)
     setError(null)
@@ -71,7 +73,7 @@ export function InvoiceForm({ business }: Props) {
 
     if (!res.ok) {
       const err = await res.json()
-      setError(err.error || 'Tatizo limetokea')
+      setError(err.error || t('common.error'))
       setLoading(false)
       return
     }
@@ -90,19 +92,19 @@ export function InvoiceForm({ business }: Props) {
 
       {/* Client details */}
       <div className="card">
-        <h2 className="font-semibold text-ink-700 mb-5">Maelezo ya Mteja</h2>
+        <h2 className="font-semibold text-ink-700 mb-5">{t('invoices.clientDetails')}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="input-label">Jina la Mteja *</label>
+            <label className="input-label">{t('invoices.clientName')} *</label>
             <input
               className="input" type="text" required
-              placeholder="Jina kamili la mteja au kampuni"
+              placeholder={t('invoices.clientNamePlaceholder')}
               value={client.client_name}
               onChange={e => setClient(c => ({ ...c, client_name: e.target.value }))}
             />
           </div>
           <div>
-            <label className="input-label">Namba ya Simu</label>
+            <label className="input-label">{t('invoices.clientPhone')}</label>
             <input
               className="input" type="tel"
               placeholder="+255 7XX XXX XXX"
@@ -111,7 +113,7 @@ export function InvoiceForm({ business }: Props) {
             />
           </div>
           <div>
-            <label className="input-label">Barua Pepe</label>
+            <label className="input-label">{t('invoices.clientEmail')}</label>
             <input
               className="input" type="email"
               placeholder="mteja@email.com"
@@ -120,7 +122,7 @@ export function InvoiceForm({ business }: Props) {
             />
           </div>
           <div>
-            <label className="input-label">Anwani</label>
+            <label className="input-label">{t('invoices.clientAddress')}</label>
             <input
               className="input" type="text"
               placeholder="Dar es Salaam, Tanzania"
@@ -129,7 +131,7 @@ export function InvoiceForm({ business }: Props) {
             />
           </div>
           <div>
-            <label className="input-label">TIN ya Mteja</label>
+            <label className="input-label">{t('invoices.clientTin')}</label>
             <input
               className="input" type="text"
               placeholder="TIN (kama ipo)"
@@ -142,15 +144,15 @@ export function InvoiceForm({ business }: Props) {
 
       {/* Line items */}
       <div className="card">
-        <h2 className="font-semibold text-ink-700 mb-5">Bidhaa / Huduma</h2>
+        <h2 className="font-semibold text-ink-700 mb-5">{t('invoices.items')}</h2>
 
         <div className="space-y-3">
           {/* Header */}
           <div className="grid grid-cols-12 gap-2 px-1">
-            <div className="col-span-5 text-xs font-semibold text-ink-400 uppercase tracking-wide">Maelezo</div>
-            <div className="col-span-2 text-xs font-semibold text-ink-400 uppercase tracking-wide">Idadi</div>
-            <div className="col-span-3 text-xs font-semibold text-ink-400 uppercase tracking-wide">Bei (TZS)</div>
-            <div className="col-span-2 text-xs font-semibold text-ink-400 uppercase tracking-wide text-right">Jumla</div>
+            <div className="col-span-5 text-xs font-semibold text-ink-400 uppercase tracking-wide">{t('invoices.description')}</div>
+            <div className="col-span-2 text-xs font-semibold text-ink-400 uppercase tracking-wide">{t('invoices.quantity')}</div>
+            <div className="col-span-3 text-xs font-semibold text-ink-400 uppercase tracking-wide">{t('invoices.unitPrice')}</div>
+            <div className="col-span-2 text-xs font-semibold text-ink-400 uppercase tracking-wide text-right">{t('common.total')}</div>
           </div>
 
           {items.map((item) => (
@@ -158,7 +160,7 @@ export function InvoiceForm({ business }: Props) {
               <div className="col-span-5">
                 <input
                   className="input" type="text" required
-                  placeholder="Bidhaa au huduma"
+                  placeholder={t('invoices.itemPlaceholder')}
                   value={item.description}
                   onChange={e => updateItem(item.id, 'description', e.target.value)}
                 />
@@ -202,14 +204,14 @@ export function InvoiceForm({ business }: Props) {
           onClick={addItem}
           className="mt-4 text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
         >
-          + Ongeza bidhaa
+          + {t('invoices.addItem')}
         </button>
 
         {/* Totals */}
         <div className="mt-6 pt-4 border-t border-ink-100 flex justify-end">
           <div className="w-64 space-y-2 text-sm">
             <div className="flex justify-between text-ink-500">
-              <span>Jumla Ndogo</span>
+              <span>{t('invoices.subtotal')}</span>
               <span className="font-mono">{formatTZS(subtotal)}</span>
             </div>
             <div className="flex justify-between text-ink-500 items-center">
@@ -221,13 +223,13 @@ export function InvoiceForm({ business }: Props) {
                   onChange={e => setVatRate(Number(e.target.value))}
                 >
                   <option value={18}>18%</option>
-                  <option value={0}>0% (Exempt)</option>
+                  <option value={0}>0% ({t('invoices.vatExempt')})</option>
                 </select>
               </div>
               <span className="font-mono">{formatTZS(vatAmount)}</span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2 border-t border-ink-200 text-ink-900">
-              <span>JUMLA KUU</span>
+              <span>{t('invoices.grandTotal')}</span>
               <span className="font-mono text-brand-700">{formatTZS(total)}</span>
             </div>
           </div>
@@ -238,7 +240,7 @@ export function InvoiceForm({ business }: Props) {
       <div className="card">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">Tarehe ya Mwisho wa Kulipa</label>
+            <label className="input-label">{t('invoices.dueDate')}</label>
             <input
               className="input" type="date"
               value={dueDate}
@@ -246,10 +248,10 @@ export function InvoiceForm({ business }: Props) {
             />
           </div>
           <div className="col-span-2">
-            <label className="input-label">Maelezo ya Ziada (Optional)</label>
+            <label className="input-label">{t('invoices.extraNotes')} ({t('common.optional')})</label>
             <textarea
               className="input resize-none" rows={3}
-              placeholder="Masharti ya malipo, shukrani, au maelezo mengine..."
+              placeholder={t('invoices.notesPlaceholder')}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
@@ -264,10 +266,10 @@ export function InvoiceForm({ business }: Props) {
           onClick={() => router.back()}
           className="btn-secondary"
         >
-          Rudi
+          {t('common.back')}
         </button>
         <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Inahifadhi...' : 'Hifadhi Invoice →'}
+          {loading ? t('invoices.saving') : t('invoices.save')}
         </button>
       </div>
     </form>
