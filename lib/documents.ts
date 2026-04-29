@@ -1,6 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Business, Invoice, Payslip } from '@/types'
-import { htmlToPDF, renderInvoiceHTML, renderPayslipHTML } from '@/lib/pdf'
+import {
+  htmlToPDF,
+  renderInvoiceFallbackPDF,
+  renderInvoiceHTML,
+  renderPayslipFallbackPDF,
+  renderPayslipHTML,
+} from '@/lib/pdf'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const DOCUMENTS_BUCKET = 'documents'
@@ -9,7 +15,7 @@ export const LEGACY_LOGOS_BUCKET = 'logos'
 
 type PdfResult = {
   pdfBuffer: Buffer
-  pdfUrl: string
+  pdfUrl: string | null
   path: string
 }
 
@@ -19,11 +25,17 @@ export async function generateAndStoreInvoicePdf(
   invoice: Invoice
 ): Promise<PdfResult> {
   const html = await renderInvoiceHTML(invoice, business)
-  const pdfBuffer = await htmlToPDF(html)
+  const pdfBuffer = await renderPdfWithFallback(
+    () => htmlToPDF(html),
+    () => renderInvoiceFallbackPDF(invoice, business),
+    'invoice'
+  )
   const path = `invoices/${business.id}/${invoice.id}.pdf`
   const pdfUrl = await uploadPdf(path, pdfBuffer)
 
-  await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoice.id)
+  if (pdfUrl) {
+    await supabase.from('invoices').update({ pdf_url: pdfUrl }).eq('id', invoice.id)
+  }
 
   return { pdfBuffer, pdfUrl, path }
 }
@@ -34,26 +46,50 @@ export async function generateAndStorePayslipPdf(
   payslip: Payslip
 ): Promise<PdfResult> {
   const html = await renderPayslipHTML(payslip, business)
-  const pdfBuffer = await htmlToPDF(html)
+  const pdfBuffer = await renderPdfWithFallback(
+    () => htmlToPDF(html),
+    () => renderPayslipFallbackPDF(payslip, business),
+    'payslip'
+  )
   const path = `payslips/${business.id}/${payslip.id}.pdf`
   const pdfUrl = await uploadPdf(path, pdfBuffer)
 
-  await supabase.from('payslips').update({ pdf_url: pdfUrl }).eq('id', payslip.id)
+  if (pdfUrl) {
+    await supabase.from('payslips').update({ pdf_url: pdfUrl }).eq('id', payslip.id)
+  }
 
   return { pdfBuffer, pdfUrl, path }
 }
 
+async function renderPdfWithFallback(
+  renderPrimary: () => Promise<Buffer>,
+  renderFallback: () => Buffer,
+  documentType: string
+) {
+  try {
+    return await renderPrimary()
+  } catch (error) {
+    console.warn(`${documentType} PDF browser render failed; using text PDF fallback:`, error)
+    return renderFallback()
+  }
+}
+
 async function uploadPdf(path: string, pdfBuffer: Buffer) {
-  const admin = createAdminClient()
-  const { error } = await admin.storage
-    .from(DOCUMENTS_BUCKET)
-    .upload(path, new Uint8Array(pdfBuffer), {
-      contentType: 'application/pdf',
-      upsert: true,
-    })
+  try {
+    const admin = createAdminClient()
+    const { error } = await admin.storage
+      .from(DOCUMENTS_BUCKET)
+      .upload(path, new Uint8Array(pdfBuffer), {
+        contentType: 'application/pdf',
+        upsert: true,
+      })
 
-  if (error) throw error
+    if (error) throw error
 
-  const { data } = admin.storage.from(DOCUMENTS_BUCKET).getPublicUrl(path)
-  return data.publicUrl
+    const { data } = admin.storage.from(DOCUMENTS_BUCKET).getPublicUrl(path)
+    return data.publicUrl
+  } catch (error) {
+    console.warn('PDF storage upload skipped:', error)
+    return null
+  }
 }

@@ -35,12 +35,16 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const normalizedEmail = email.trim().toLowerCase()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    })
 
-    if (error) {
-      setError(error.message === 'Invalid login credentials'
+    if (error || !data.session) {
+      setError(error?.message === 'Invalid login credentials'
         ? t('auth.login.invalid')
-        : error.message)
+        : error?.message || t('auth.login.invalid'))
       setLoading(false)
       return
     }

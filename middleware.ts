@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { getSafeRedirectPath } from '@/lib/auth/redirect'
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req })
@@ -34,7 +35,8 @@ export async function middleware(req: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (user && (pathname === '/login' || pathname === '/register')) {
-    return redirectWithCookies(new URL('/dashboard', req.url), res)
+    const nextPath = getSafeRedirectPath(req.nextUrl.searchParams.get('next'))
+    return redirectWithCookies(new URL(nextPath, req.url), res)
   }
 
   // Protect dashboard routes

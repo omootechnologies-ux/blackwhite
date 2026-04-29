@@ -18,9 +18,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!business) redirect('/login')
 
   return (
-    <div className="min-h-screen bg-ink-50 flex">
+    <div className="min-h-screen bg-ink-50 flex flex-col lg:flex-row">
       {/* Sidebar */}
-      <aside className="w-60 bg-white border-r border-ink-200 flex flex-col sticky top-0 h-screen">
+      <aside className="w-full bg-white border-b border-ink-200 flex flex-col lg:w-60 lg:border-b-0 lg:border-r lg:sticky lg:top-0 lg:h-screen">
         {/* Brand */}
         <div className="px-5 py-4 border-b border-ink-100">
           <span className="font-display text-lg text-ink-900">
@@ -66,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* Main content */}
       <main className="flex-1 min-w-0 overflow-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
           {children}
         </div>
       </main>

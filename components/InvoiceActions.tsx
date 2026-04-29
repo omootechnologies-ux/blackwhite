@@ -11,9 +11,9 @@ export function InvoiceActions({ invoice }: Props) {
   const { t } = useI18n()
   const [loading, setLoading] = useState<string | null>(null)
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null)
+  const [fallbackDownloadUrl, setFallbackDownloadUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [email, setEmail] = useState(invoice.client_email || '')
 
   function setFailure(message: string) {
     setSuccess(null)
@@ -49,7 +49,7 @@ export function InvoiceActions({ invoice }: Props) {
   function openPDF() {
     setError(null)
     setSuccess(null)
-    window.open(`/api/invoices/${invoice.id}/pdf`, '_blank', 'noopener,noreferrer')
+    window.open(`/api/invoices/${invoice.id}/pdf?view=1`, '_blank', 'noopener,noreferrer')
   }
 
   async function sendInvoice() {
@@ -65,36 +65,11 @@ export function InvoiceActions({ invoice }: Props) {
       if (!res.ok) throw new Error(await readError(res, t('invoices.whatsappFailed')))
       const data = await res.json()
       setWhatsappUrl(data.whatsappUrl)
-      setSuccess(t('invoices.paymentStarted'))
+      setFallbackDownloadUrl(data.downloadUrl || `/api/invoices/${invoice.id}/pdf`)
+      setSuccess(data.paymentError ? t('invoices.whatsappReady') : t('invoices.whatsappOpened'))
+      window.location.href = data.whatsappUrl
     } catch (err) {
       setFailure(err instanceof Error ? err.message : t('invoices.whatsappFailed'))
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  async function sendEmail() {
-    const to = email.trim()
-    if (!to) {
-      setFailure(t('invoices.emailRequired'))
-      return
-    }
-
-    setLoading('email')
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const res = await fetch(`/api/invoices/${invoice.id}/email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: to }),
-      })
-
-      if (!res.ok) throw new Error(await readError(res, t('invoices.emailFailed')))
-      setSuccess(t('invoices.emailSent'))
-    } catch (err) {
-      setFailure(err instanceof Error ? err.message : t('invoices.emailFailed'))
     } finally {
       setLoading(null)
     }
@@ -110,14 +85,25 @@ export function InvoiceActions({ invoice }: Props) {
       )}
 
       {whatsappUrl && (
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
-        >
-          {t('invoices.sentWhatsapp')}
-        </a>
+        <div className="flex flex-wrap justify-end gap-2">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
+          >
+            {t('invoices.sentWhatsapp')}
+          </a>
+          {fallbackDownloadUrl && (
+            <a
+              href={fallbackDownloadUrl}
+              className="btn-secondary text-sm"
+              download
+            >
+              {t('invoices.fallbackDownload')}
+            </a>
+          )}
+        </div>
       )}
 
       <div className="flex flex-wrap justify-end gap-2">
@@ -152,24 +138,6 @@ export function InvoiceActions({ invoice }: Props) {
             {t('common.status.paid')}
           </span>
         )}
-      </div>
-
-      <div className="flex w-full max-w-md gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder={t('invoices.emailPlaceholder')}
-          className="input h-9 text-sm"
-        />
-        <button
-          type="button"
-          onClick={sendEmail}
-          disabled={loading === 'email'}
-          className="btn-secondary text-sm whitespace-nowrap"
-        >
-          {loading === 'email' ? t('invoices.sending') : t('invoices.emailPdf')}
-        </button>
       </div>
     </div>
   )

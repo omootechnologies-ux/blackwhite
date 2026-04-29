@@ -27,6 +27,17 @@ export async function GET(request: NextRequest) {
     if (user) {
       await ensureUserWorkspace(supabase, user)
     }
+  } else {
+    const supabase = createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      const loginUrl = new URL('/login', siteUrl)
+      loginUrl.searchParams.set('next', redirectPath)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    await ensureUserWorkspace(supabase, user)
   }
 
   return NextResponse.redirect(new URL(redirectPath, siteUrl))

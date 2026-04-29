@@ -19,13 +19,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { basic_salary, allowances = [], other_deductions = [], ...rest } = body
 
-  if (!business.phone && !body.payerPhone) {
-    return NextResponse.json(
-      { error: 'Add a business phone number in settings before creating a paid payslip request.' },
-      { status: 400 }
-    )
-  }
-
   const payroll = calculatePayroll(Number(basic_salary), allowances, other_deductions)
 
   const payslipData = {
@@ -47,8 +40,12 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const { pdfUrl } = await generateAndStorePayslipPdf(supabase, business, payslip)
+  let payment: Record<string, any> | null = null
+  let paymentError: string | null = null
+
   try {
-    const payment = await initiateUsagePayment({
+    payment = await initiateUsagePayment({
       supabase,
       user,
       business,
@@ -64,14 +61,10 @@ export async function POST(req: NextRequest) {
         month: payslip.month,
       },
     })
-
-    const { pdfUrl } = await generateAndStorePayslipPdf(supabase, business, payslip)
-    return NextResponse.json({ ...payslip, pdf_url: pdfUrl, payment })
   } catch (err: any) {
-    console.error('Payslip payment/PDF error:', err)
-    return NextResponse.json(
-      { error: err.message || 'Payslip payment or PDF generation failed', payslip_id: payslip.id },
-      { status: err.message?.includes('phone') ? 400 : 502 }
-    )
+    paymentError = err.message || 'Payslip payment request failed'
+    console.warn('Payslip payment request skipped:', paymentError)
   }
+
+  return NextResponse.json({ ...payslip, pdf_url: pdfUrl, payment, paymentError })
 }

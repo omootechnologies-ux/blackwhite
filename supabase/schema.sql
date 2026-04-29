@@ -5,6 +5,7 @@
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
 -- ============================================================
 -- BUSINESSES
@@ -101,8 +102,8 @@ create table payslips (
   allowances      jsonb default '[]',         -- [{name, amount}]
   gross           numeric(15,2) not null,
   paye            numeric(15,2) default 0,
-  nssf_employee   numeric(15,2) default 0,   -- 5% employee
-  nssf_employer   numeric(15,2) default 0,   -- 5% employer
+  nssf_employee   numeric(15,2) default 0,   -- configurable employee pension contribution
+  nssf_employer   numeric(15,2) default 0,   -- configurable employer pension contribution
   other_deductions jsonb default '[]',        -- [{name, amount}]
   total_deductions numeric(15,2) default 0,
   net_pay         numeric(15,2) not null,
@@ -128,7 +129,7 @@ create table usage_payments (
   document_type       text not null check (document_type in ('invoice', 'payslip', 'document')),
   document_id         uuid,
   request_type        text not null check (
-    request_type in ('invoice_pdf', 'payslip_pdf', 'email_share', 'whatsapp_share', 'document_generation')
+    request_type in ('invoice_pdf', 'payslip_pdf', 'whatsapp_share', 'document_generation')
   ),
   provider            text not null default 'mongike',
   gateway_ref         text,
@@ -149,6 +150,83 @@ create policy "Users own their usage payments" on usage_payments
   with check (
     auth.uid() = user_id
     and business_id in (
+      select id from businesses where user_id = auth.uid()
+    )
+  );
+
+-- ============================================================
+-- TAX SETTINGS
+-- ============================================================
+create table tax_settings (
+  id                            uuid primary key default gen_random_uuid(),
+  business_id                   uuid references businesses on delete cascade not null unique,
+  vat_registered                boolean not null default false,
+  vat_rate                      numeric(5,2) not null default 18,
+  vat_registration_threshold    numeric(15,2) not null default 200000000,
+  income_tax_rate               numeric(5,2) not null default 30,
+  sdl_rate                      numeric(5,2) not null default 3.5,
+  sdl_employee_threshold        integer not null default 10,
+  nssf_employee_rate            numeric(5,2) not null default 10,
+  nssf_employer_rate            numeric(5,2) not null default 10,
+  paye_due_day                  integer not null default 7,
+  vat_due_day                   integer not null default 20,
+  income_tax_installment_months integer[] not null default array[3, 6, 9, 12],
+  paye_brackets                 jsonb not null default '[
+    {"over":0,"notOver":270000,"baseTax":0,"rate":0},
+    {"over":270000,"notOver":520000,"baseTax":0,"rate":8},
+    {"over":520000,"notOver":760000,"baseTax":20000,"rate":20},
+    {"over":760000,"notOver":1000000,"baseTax":68000,"rate":25},
+    {"over":1000000,"notOver":null,"baseTax":128000,"rate":30}
+  ]',
+  source_note                   text,
+  created_at                    timestamptz default now(),
+  updated_at                    timestamptz default now()
+);
+
+alter table tax_settings enable row level security;
+create policy "Business owns tax settings" on tax_settings
+  for all using (
+    business_id in (
+      select id from businesses where user_id = auth.uid()
+    )
+  )
+  with check (
+    business_id in (
+      select id from businesses where user_id = auth.uid()
+    )
+  );
+
+-- ============================================================
+-- TAX ENTRIES
+-- ============================================================
+create table tax_entries (
+  id                    uuid primary key default gen_random_uuid(),
+  business_id           uuid references businesses on delete cascade not null,
+  entry_date            date not null,
+  period_type           text not null default 'daily' check (period_type in ('daily', 'monthly')),
+  sales_vat_exclusive   numeric(15,2) not null default 0,
+  exempt_sales          numeric(15,2) not null default 0,
+  deductible_expenses   numeric(15,2) not null default 0,
+  input_vat             numeric(15,2) not null default 0,
+  payroll_gross         numeric(15,2) not null default 0,
+  paye_withheld         numeric(15,2) not null default 0,
+  employee_count        integer not null default 0,
+  notes                 text,
+  created_at            timestamptz default now(),
+  updated_at            timestamptz default now()
+);
+
+create index tax_entries_business_date_idx on tax_entries (business_id, entry_date desc);
+
+alter table tax_entries enable row level security;
+create policy "Business owns tax entries" on tax_entries
+  for all using (
+    business_id in (
+      select id from businesses where user_id = auth.uid()
+    )
+  )
+  with check (
+    business_id in (
       select id from businesses where user_id = auth.uid()
     )
   );
@@ -187,6 +265,10 @@ create trigger set_updated_at before update on businesses
 create trigger set_updated_at before update on invoices
   for each row execute function handle_updated_at();
 create trigger set_updated_at before update on usage_payments
+  for each row execute function handle_updated_at();
+create trigger set_updated_at before update on tax_settings
+  for each row execute function handle_updated_at();
+create trigger set_updated_at before update on tax_entries
   for each row execute function handle_updated_at();
 
 -- ============================================================

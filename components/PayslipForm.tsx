@@ -74,6 +74,8 @@ export function PayslipForm({ business }: Props) {
     const payslip = await res.json()
     if (payslip.pdf_url) {
       window.open(payslip.pdf_url, '_blank')
+    } else if (payslip.id) {
+      window.open(`/api/payslips/${payslip.id}/pdf?view=1`, '_blank')
     }
     setSuccess(true)
     setTimeout(() => router.push('/dashboard/payslips'), 1500)

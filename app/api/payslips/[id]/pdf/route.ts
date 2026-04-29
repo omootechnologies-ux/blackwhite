@@ -34,13 +34,18 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="payslip-${payslip.id}.pdf"`,
+        'Content-Disposition': `${_req.nextUrl.searchParams.get('view') === '1' ? 'inline' : 'attachment'}; filename="${safePdfName(`payslip-${payslip.employee_name}-${payslip.month}`)}.pdf"`,
+        'Cache-Control': 'no-store',
       },
     })
   } catch (err) {
     console.error('Payslip PDF error:', err)
     return NextResponse.json({ error: 'PDF generation failed' }, { status: 500 })
   }
+}
+
+function safePdfName(value: string) {
+  return value.replace(/[^a-z0-9._-]+/gi, '-').replace(/^-|-$/g, '') || 'payslip'
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

@@ -88,7 +88,7 @@
 
   /* Page layout */
   .page-header {
-    @apply flex items-center justify-between mb-6;
+    @apply flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6;
   }
   .page-title {
     @apply font-display text-2xl text-ink-900;

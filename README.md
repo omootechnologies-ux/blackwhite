@@ -5,7 +5,7 @@ Invoice and payslip app for Tanzanian businesses with pay-as-you-go document req
 ## Stack
 - **Frontend + API**: Next.js 14 (App Router)
 - **Database + Auth**: Supabase (Postgres + Auth + Storage)
-- **PDF**: Puppeteer + @sparticuz/chromium
+- **PDF**: Puppeteer + @sparticuz/chromium with a built-in text PDF fallback
 - **Payments**: Mongike Mobile Money (M-Pesa, Airtel, Tigo)
 - **Styling**: Tailwind CSS
 - **Hosting**: Vercel
@@ -20,7 +20,7 @@ npm install
 ### 2. Environment Variables
 ```bash
 cp .env.example .env.local
-# Fill in your Supabase, Mongike, and email credentials
+# Fill in your Supabase and Mongike credentials
 ```
 
 ### 3. Database Setup
@@ -47,9 +47,6 @@ For Vercel production, add these environment variables:
 - `NEXT_PUBLIC_BASE_URL=https://YOUR_DOMAIN`
 - `MONGIKE_API_KEY`
 - `MONGIKE_BASE_URL=https://mongike.com/api/v1`
-- `EMAIL_WEBHOOK_URL`
-- `EMAIL_WEBHOOK_AUTH_HEADER` (optional)
-- `EMAIL_FROM` (optional)
 
 ### 4. Run locally
 ```bash
@@ -68,6 +65,7 @@ npx vercel
 ## Local PDF (Development)
 For local development, PDF generation requires Google Chrome installed.
 For production on Vercel, `@sparticuz/chromium` is used automatically.
+If Chrome is unavailable, Blackwhite now returns a simpler text PDF so downloads and WhatsApp fallback sharing still work.
 
 **Alternative**: Deploy to a DigitalOcean Droplet ($6/mo) and use full Puppeteer — simpler setup.
 
@@ -78,8 +76,8 @@ For production on Vercel, `@sparticuz/chromium` is used automatically.
 
 Paid usage requests cost **TZS 2,000** each. The app records payment attempts in `usage_payments` when the table exists.
 
-## Email Sharing
-Email delivery is delegated to `EMAIL_WEBHOOK_URL`. The app posts document metadata, a public PDF URL, and an attachment descriptor for the generated PDF. Set `EMAIL_WEBHOOK_AUTH_HEADER` if your webhook requires an authorization header.
+## TRA Compliance
+The dashboard includes a TRA compliance module for daily or monthly sales, expenses, VAT input/output, PAYE withheld, SDL estimates, income tax provision, and reminders. Defaults are configurable in-app because Tanzanian tax rates and thresholds can change.
 
 ## Pay-As-You-Go Model
-There are no monthly plans in the app. Users pay TZS 2,000 when generating, sending, or sharing invoice and payslip PDFs.
+There are no monthly plans in the app. Users pay TZS 2,000 when generating or sharing invoice and payslip PDFs.

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildWhatsAppLink } from '@/lib/mongike'
 import { generateAndStoreInvoicePdf } from '@/lib/documents'
 import { initiateUsagePayment } from '@/lib/payments'
+import { getSiteUrl } from '@/lib/site-url'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createServerClient()
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const buyerPhone = body.payerPhone || business.phone
   const buyerName = body.payerName || business.name
   const buyerEmail = body.payerEmail || business.email || user.email
+  const downloadUrl = new URL(`/api/invoices/${invoice.id}/pdf`, getSiteUrl(req.nextUrl.origin)).toString()
 
   // Generate PDF first (if not exists)
   let pdfUrl = invoice.pdf_url
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   let paymentData: Record<string, any> | null = null
+  let paymentError: string | null = null
 
   try {
     paymentData = await initiateUsagePayment({
@@ -51,11 +54,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Payment request failed' }, { status: 502 })
+    paymentError = error.message || 'Payment request failed'
+    console.warn('WhatsApp share payment request skipped:', paymentError)
   }
 
   // Build WhatsApp URL
-  const whatsappUrl = buildWhatsAppLink(invoice, pdfUrl || '')
+  const whatsappUrl = buildWhatsAppLink(invoice, pdfUrl || downloadUrl)
 
   // Update invoice status
   await supabase.from('invoices').update({
@@ -63,5 +67,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     pdf_url: pdfUrl,
   }).eq('id', invoice.id)
 
-  return NextResponse.json({ whatsappUrl, pdfUrl, payment: paymentData })
+  return NextResponse.json({ whatsappUrl, pdfUrl, downloadUrl, payment: paymentData, paymentError })
 }

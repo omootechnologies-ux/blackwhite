@@ -125,7 +125,6 @@ export interface MongikeErrorResponse {
 export type UsagePaymentType =
   | 'invoice_pdf'
   | 'payslip_pdf'
-  | 'email_share'
   | 'whatsapp_share'
   | 'document_generation'
 
@@ -169,4 +168,41 @@ export type PayslipFormData = {
   basic_salary: number
   allowances: Allowance[]
   other_deductions: Deduction[]
+}
+
+export interface TaxSettings {
+  id: string
+  business_id: string
+  vat_registered: boolean
+  vat_rate: number
+  vat_registration_threshold: number
+  income_tax_rate: number
+  sdl_rate: number
+  sdl_employee_threshold: number
+  nssf_employee_rate: number
+  nssf_employer_rate: number
+  paye_due_day: number
+  vat_due_day: number
+  income_tax_installment_months: number[]
+  paye_brackets?: unknown
+  source_note?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TaxEntry {
+  id: string
+  business_id: string
+  entry_date: string
+  period_type: 'daily' | 'monthly'
+  sales_vat_exclusive: number
+  exempt_sales: number
+  deductible_expenses: number
+  input_vat: number
+  payroll_gross: number
+  paye_withheld: number
+  employee_count: number
+  notes?: string
+  created_at: string
+  updated_at: string
 }

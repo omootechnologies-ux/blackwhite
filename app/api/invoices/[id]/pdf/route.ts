@@ -34,7 +34,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${invoice.number}.pdf"`,
+        'Content-Disposition': `${req.nextUrl.searchParams.get('view') === '1' ? 'inline' : 'attachment'}; filename="${safePdfName(invoice.number)}.pdf"`,
+        'Cache-Control': 'no-store',
       },
     })
   } catch (err) {
@@ -79,4 +80,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { status: err.message?.includes('phone') ? 400 : 502 }
     )
   }
+}
+
+function safePdfName(value: string) {
+  return value.replace(/[^a-z0-9._-]+/gi, '-').replace(/^-|-$/g, '') || 'invoice'
 }

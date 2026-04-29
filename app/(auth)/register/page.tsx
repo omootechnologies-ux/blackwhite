@@ -38,15 +38,23 @@ export default function RegisterPage() {
     setError(null)
     setSuccess(null)
     const nextPath = getSafeRedirectPath(new URLSearchParams(window.location.search).get('next'))
+    const normalizedEmail = form.email.trim().toLowerCase()
+    const businessName = form.businessName.trim()
+
+    if (!businessName) {
+      setError(t('auth.register.businessNameRequired'))
+      setLoading(false)
+      return
+    }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
+      email: normalizedEmail,
       password: form.password,
       options: {
         emailRedirectTo: getAuthCallbackUrl(window.location.origin, nextPath),
         data: {
-          business_name: form.businessName,
-          phone: form.phone,
+          business_name: businessName,
+          phone: form.phone.trim(),
         },
       },
     })
